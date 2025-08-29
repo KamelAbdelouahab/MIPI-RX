@@ -4,7 +4,6 @@ use ieee.numeric_std.all;
 
 package csi2_pkg is
     constant C_MAX_LANES : natural := 4;
-
     type avst_t is record
         data  : std_logic_vector(7 downto 0);
         valid : std_logic;

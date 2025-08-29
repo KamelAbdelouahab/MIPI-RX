@@ -4,6 +4,7 @@ use ieee.numeric_std.all;
 use work.csi2_pkg.all;
 
 entity csi2_decoder is
+
     generic (
         LANES : positive := 1
     );
@@ -17,6 +18,7 @@ entity csi2_decoder is
         avst_ready : in  std_logic;
         avst_sop   : out std_logic;
         avst_eop   : out std_logic
+
     );
 end entity csi2_decoder;
 
@@ -35,6 +37,7 @@ begin
                 header      <= (others => '0');
                 byte_cnt    <= 0;
                 payload_cnt <= (others => '0');
+
                 avst_data   <= (others => '0');
                 avst_valid  <= '0';
                 avst_sop    <= '0';
@@ -54,6 +57,7 @@ begin
 
                     when S_HEADER =>
                         if byte_valid = '1' then
+
                             header(byte_cnt*8+7 downto byte_cnt*8) <= byte_data(7 downto 0);
                             if byte_cnt = 3 then
                                 payload_cnt <= unsigned(header(23 downto 8));
