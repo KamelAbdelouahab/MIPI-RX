@@ -4,13 +4,21 @@ use ieee.numeric_std.all;
 use work.csi2_pkg.all;
 
 entity csi2_decoder is
+
+    generic (
+        LANES : positive := 1
+    );
     port (
         clk        : in  std_logic;
         rst        : in  std_logic;
-        byte_data  : in  std_logic_vector(7 downto 0);
+        byte_data  : in  std_logic_vector(8*LANES-1 downto 0);
         byte_valid : in  std_logic;
-        avst       : out avst_out_t;
-        avst_ready : in  std_logic
+        avst_data  : out std_logic_vector(7 downto 0);
+        avst_valid : out std_logic;
+        avst_ready : in  std_logic;
+        avst_sop   : out std_logic;
+        avst_eop   : out std_logic
+
     );
 end entity csi2_decoder;
 
@@ -29,29 +37,31 @@ begin
                 header      <= (others => '0');
                 byte_cnt    <= 0;
                 payload_cnt <= (others => '0');
-                avst.data  <= (others => '0');
-                avst.valid <= '0';
-                avst.sop   <= '0';
-                avst.eop   <= '0';
+
+                avst_data   <= (others => '0');
+                avst_valid  <= '0';
+                avst_sop    <= '0';
+                avst_eop    <= '0';
             else
-                avst.sop   <= '0';
-                avst.eop   <= '0';
-                avst.valid <= '0';
+                avst_sop   <= '0';
+                avst_eop   <= '0';
+                avst_valid <= '0';
 
                 case state is
                     when S_IDLE =>
                         if byte_valid = '1' then
-                            header(7 downto 0) <= byte_data;
+                            header(7 downto 0) <= byte_data(7 downto 0);
                             byte_cnt <= 1;
                             state    <= S_HEADER;
                         end if;
 
                     when S_HEADER =>
                         if byte_valid = '1' then
-                            header(byte_cnt*8+7 downto byte_cnt*8) <= byte_data;
+
+                            header(byte_cnt*8+7 downto byte_cnt*8) <= byte_data(7 downto 0);
                             if byte_cnt = 3 then
                                 payload_cnt <= unsigned(header(23 downto 8));
-                                avst.sop    <= '1';
+                                avst_sop    <= '1';
                                 byte_cnt    <= 0;
                                 state       <= S_PAYLOAD;
                             else
@@ -61,10 +71,10 @@ begin
 
                     when S_PAYLOAD =>
                         if byte_valid = '1' and avst_ready = '1' then
-                            avst.data  <= byte_data;
-                            avst.valid <= '1';
+                            avst_data  <= byte_data(7 downto 0);
+                            avst_valid <= '1';
                             if payload_cnt = 1 then
-                                avst.eop <= '1';
+                                avst_eop <= '1';
                                 state    <= S_IDLE;
                             end if;
                             payload_cnt <= payload_cnt - 1;
